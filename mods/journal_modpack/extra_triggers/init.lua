@@ -24,7 +24,7 @@ function triggers.handle_rightclick(pos, node, clicker, itemstack, pointed_thing
 	return ret
 end
 
-minetest.after(3, function()
+core.register_on_mods_loaded(function()
 	for name, def in pairs(minetest.registered_items) do
 		if def.on_rightclick then
 			rightclickfuncs[name] = def.on_rightclick
