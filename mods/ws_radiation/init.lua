@@ -125,7 +125,9 @@ function radiation.update_hud(player_name, level, color)
     -- Create or update HUD element
     if not radiation.players[player_name].hud_id then
         radiation.players[player_name].hud_id = player:hud_add({
-            hud_elem_type = "statbar",
+            hud_elem_type = (core.get_version().proto_max < 44)
+                and "statbar" or nil,
+            type = "statbar",
             position = {x = 0.5, y = 1},
             size = {x = 24, y = 24},
             offset = {x = 0, y = -80},

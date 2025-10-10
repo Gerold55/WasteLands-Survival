@@ -98,6 +98,11 @@ function hb.get_hudbar_position_index(identifier)
 	end
 end
 
+local function hud_elem_type_compat(t)
+    if core.get_version().proto_max<44 then return t
+    else return nil end
+end
+
 function hb.register_hudbar(identifier, text_color, label, textures, default_start_value, default_start_max, default_start_hidden, format_string)
 	minetest.log("action", "hb.register_hudbar: "..tostring(identifier))
 	local hudtable = {}
@@ -161,7 +166,8 @@ function hb.register_hudbar(identifier, text_color, label, textures, default_sta
 		end
 		if hb.settings.bar_type == "progress_bar" then
 			ids.bg = player:hud_add({
-				hud_elem_type = "image",
+				hud_elem_type = hud_elem_type_compat("image"),
+				type = "image",
 				position = pos,
 				scale = bgscale,
 				text = "hudbars_bar_background.png",
@@ -170,7 +176,8 @@ function hb.register_hudbar(identifier, text_color, label, textures, default_sta
 			})
 			if textures.icon ~= nil then
 				ids.icon = player:hud_add({
-					hud_elem_type = "image",
+					hud_elem_type = hud_elem_type_compat("image"),
+					type = "image",
 					position = pos,
 					scale = iconscale,
 					text = textures.icon,
@@ -181,7 +188,8 @@ function hb.register_hudbar(identifier, text_color, label, textures, default_sta
 		elseif hb.settings.bar_type == "statbar_modern" then
 			if textures.bgicon ~= nil then
 				ids.bg = player:hud_add({
-					hud_elem_type = "statbar",
+					hud_elem_type = hud_elem_type_compat("statbar"),
+					type = "statbar",
 					position = pos,
 					text = textures.bgicon,
 					number = bgiconnumber,
@@ -201,7 +209,8 @@ function hb.register_hudbar(identifier, text_color, label, textures, default_sta
 			bar_size = {x=24, y=24}
 		end
 		ids.bar = player:hud_add({
-			hud_elem_type = "statbar",
+			hud_elem_type = hud_elem_type_compat("statbar"),
+			type = "statbar",
 			position = pos,
 			text = bar_image,
 			number = barnumber,
@@ -212,7 +221,8 @@ function hb.register_hudbar(identifier, text_color, label, textures, default_sta
 		})
 		if hb.settings.bar_type == "progress_bar" then
 			ids.text = player:hud_add({
-				hud_elem_type = "text",
+				hud_elem_type = hud_elem_type_compat("text"),
+				type = "text",
 				position = pos,
 				text = text,
 				alignment = {x=1,y=1},

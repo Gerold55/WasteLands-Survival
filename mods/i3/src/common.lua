@@ -619,9 +619,15 @@ local function reset_data(data)
 	end
 end
 
+local function hud_elem_type_compat(t)
+    if core.get_version().proto_max<44 then return t
+    else return nil end
+end
+
 local function add_hud_waypoint(player, name, pos, color, image)
 	return player:hud_add {
-		hud_elem_type = image and "image_waypoint" or "waypoint",
+		hud_elem_type = hud_elem_type_compat(image and "image_waypoint" or "waypoint"),
+		type = image and "image_waypoint" or "waypoint",
 		name = name,
 		text = image or "m",
 		scale = {x = 5, y = 5},
@@ -635,7 +641,8 @@ end
 local function init_hud_notif(player)
 	return {
 		bg = player:hud_add {
-			hud_elem_type = "image",
+			hud_elem_type = hud_elem_type_compat("image"),
+			type = "image",
 			position      = {x = 0,   y = 1},
 			offset        = {x = 10,  y = 0},
 			alignment     = {x = 1,   y = 1},
@@ -645,7 +652,8 @@ local function init_hud_notif(player)
 		},
 
 		img = player:hud_add {
-			hud_elem_type = "image",
+			hud_elem_type = hud_elem_type_compat("image"),
+			type = "image",
 			position      = {x = 0,  y = 1},
 			offset        = {x = 20, y = 20},
 			alignment     = {x = 1,  y = 1},
@@ -655,7 +663,8 @@ local function init_hud_notif(player)
 		},
 
 		text = player:hud_add {
-			hud_elem_type = "text",
+			hud_elem_type = hud_elem_type_compat("text"),
+			type = "text",
 			position      = {x = 0,   y = 1},
 			offset        = {x = 100, y = 40},
 			alignment     = {x = 1,   y = 1},

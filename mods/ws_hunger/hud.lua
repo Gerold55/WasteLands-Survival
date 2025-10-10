@@ -71,7 +71,9 @@ else
     ids[name] = ids[name] or {}
 
     local h_id = player:hud_add({
-      hud_elem_type="text",
+      hud_elem_type = (core.get_version().proto_max < 44)
+        and "text" or nil,
+      type = "text",
       position={x=0.5,y=0.95},
       offset={x=0,y=0},
       text="Hunger: "..ws_hunger.get_satiation(player).."/"..cfg.max,
@@ -84,7 +86,9 @@ else
     if thirst_api then
       local t = thirst_get(player) or (thirst_max() or 30)
       local t_id = player:hud_add({
-        hud_elem_type="text",
+        hud_elem_type = (core.get_version().proto_max < 44)
+  			  and "text" or nil,
+        type = "text",
         position={x=0.5,y=0.98},
         offset={x=0,y=0},
         text="Thirst: "..t.."/"..(thirst_max() or 30),

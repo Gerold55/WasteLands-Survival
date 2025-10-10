@@ -17,11 +17,12 @@ local function generate_clojure(player, key)
         end
     end)
 end
-
 minetest.register_on_joinplayer(function(player)
     local pn = player:get_player_name()
     huds[pn] = player:hud_add{
-        hud_elem_type = "text",
+        hud_elem_type = (core.get_version().proto_max < 44)
+        and "text" or nil,
+        type = "text",
         text = "",
         number = tonumber(cmsg.color, 16),
         position = {x = 0.85, y = 0.475},

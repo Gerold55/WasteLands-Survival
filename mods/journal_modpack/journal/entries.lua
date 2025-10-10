@@ -58,7 +58,8 @@ function entries.make_page(player,page)
 end
 
 local newEntryHud = {
-  hud_elem_type = "image",
+  hud_elem_type = (core.get_version().proto_max < 44)
+  and "image" or nil,
   position = {x=1,y=0},
   scale = {x=1,y=1},
   text = "NewJournalEntry.png",
