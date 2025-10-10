@@ -7,7 +7,7 @@ local move_timer = 0
 local poison_timer = 0
 
 local function player_is_moving(p)
-  local v = p:get_player_velocity()
+  local v = p:get_velocity()
   return v and (math.abs(v.x)+math.abs(v.y)+math.abs(v.z)) > 0.1
 end
 

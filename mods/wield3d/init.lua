@@ -75,10 +75,12 @@ local function sq_dist(a, b)
 end
 
 local wield_entity = {
-	physical = false,
-	collisionbox = {-0.125,-0.125,-0.125, 0.125,0.125,0.125},
-	visual = "wielditem",
-	textures = {"wield3d:hand"},
+	initial_properties = {
+		physical = false,
+		collisionbox = {-0.125,-0.125,-0.125, 0.125,0.125,0.125},
+		visual = "wielditem",
+		textures = {"wield3d:hand"},
+	},
 	wielder = nil,
 	timer = 0,
 }
