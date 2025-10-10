@@ -17,12 +17,23 @@ ignore = {
 
 read_globals = {
 	-- minetest
+	"core",
 	"minetest",
-	"dump", "dump2","vector",
-	"creative",
+	"dump",
+	"dump2",
+	"vector",
+	"AreaStore",
 	"ItemStack",
-	"PcgRandom","PseudoRandom",
-	"VoxelManip", "VoxelArea",
+	"ValueNoise",
+	"ValueNoiseMap",
+	"PseudoRandom",
+	"PcgRandom",
+	"SecureRandom",
+	"VoxelArea",
+	"VoxelManip",
+	"Settings",
+	"IPC",
+	"creative",
 	math = { fields = {"sign"} },
 	table = { fields = {"copy"} },
 	-- mod checks
