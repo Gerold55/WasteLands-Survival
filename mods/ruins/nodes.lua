@@ -145,7 +145,7 @@ minetest.register_node("ruins:wallpaper_1", {
 	paramtype2 = "facedir",
 	tiles = {"ws_planks_old.png", "ws_planks_old.png", "ws_planks_old.png", "ws_planks_old.png", "ws_planks_old.png", "ruins_wallpaper_1.png"},
 	is_ground_content = false,
-	groups = {choppy = 3, planks = 1, wood = 1, flammable = 2},
+	groups = {snappy=3, oddly_breakable_by_hand=3, flammable=2},
 })
 
 minetest.register_node("ruins:wallpaper_2", {
@@ -153,7 +153,7 @@ minetest.register_node("ruins:wallpaper_2", {
 	paramtype2 = "facedir",
 	tiles = {"ws_planks_old.png", "ws_planks_old.png", "ws_planks_old.png", "ws_planks_old.png", "ws_planks_old.png", "ruins_wallpaper_2.png"},
 	is_ground_content = false,
-	groups = {choppy = 3, planks = 1, wood = 1, flammable = 2},
+	groups = {snappy=3, oddly_breakable_by_hand=3, flammable=2},
 })
 
 minetest.register_node("ruins:wallpaper_3", {
@@ -161,7 +161,7 @@ minetest.register_node("ruins:wallpaper_3", {
 	paramtype2 = "facedir",
 	tiles = {"ws_planks_old.png", "ws_planks_old.png", "ws_planks_old.png", "ws_planks_old.png", "ws_planks_old.png", "ruins_wallpaper_3.png"},
 	is_ground_content = false,
-	groups = {choppy = 3, planks = 1, wood = 1, flammable = 2},
+	groups = {snappy=3, oddly_breakable_by_hand=3, flammable=2},
 })
 
 -- Ripped Wallpapers
@@ -170,7 +170,7 @@ minetest.register_node("ruins:wallpaper_1_rip", {
 	paramtype2 = "facedir",
 	tiles = {"ws_planks_old.png", "ws_planks_old.png", "ws_planks_old.png", "ws_planks_old.png", "ws_planks_old.png", "ws_planks_old.png^ruins_wallpaper_1_rip.png"},
 	is_ground_content = false,
-	groups = {choppy = 3, planks = 1, wood = 1, flammable = 2},
+	groups = {snappy=3, oddly_breakable_by_hand=3, flammable=2},
 })
 
 minetest.register_node("ruins:wallpaper_2_rip", {
@@ -178,7 +178,7 @@ minetest.register_node("ruins:wallpaper_2_rip", {
 	paramtype2 = "facedir",
 	tiles = {"ws_planks_old.png", "ws_planks_old.png", "ws_planks_old.png", "ws_planks_old.png", "ws_planks_old.png", "ws_planks_old.png^ruins_wallpaper_2_rip.png"},
 	is_ground_content = false,
-	groups = {choppy = 3, planks = 1, wood = 1, flammable = 2},
+	groups = {snappy=3, oddly_breakable_by_hand=3, flammable=2},
 })
 
 minetest.register_node("ruins:wallpaper_3_rip", {
@@ -186,7 +186,7 @@ minetest.register_node("ruins:wallpaper_3_rip", {
 	paramtype2 = "facedir",
 	tiles = {"ws_planks_old.png", "ws_planks_old.png", "ws_planks_old.png", "ws_planks_old.png", "ws_planks_old.png", "ws_planks_old.png^ruins_wallpaper_3_rip.png"},
 	is_ground_content = false,
-	groups = {choppy = 3, planks = 1, wood = 1, flammable = 2},
+	groups = {snappy=3, oddly_breakable_by_hand=3, flammable=2},
 })
 
 -- Skeleton Decorations

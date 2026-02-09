@@ -550,6 +550,13 @@ minetest.register_node("ws_core:stone_with_copper_dense", {
 	drop = 'ws_core:copper_lump 3',
 })
 
+minetest.register_node("ws_core:stone_with_diamond", {
+	description = "Diamond Ore",
+	tiles = {"ws_stone.png^ws_mineral_diamond.png"},
+	groups = {cracky = 3},
+	drop = 'ws_core:diamond',
+})
+
 -- =====
 -- WOODS
 -- =====

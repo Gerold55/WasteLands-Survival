@@ -1,4 +1,4 @@
--- default/torch.lua
+-- ws_core/torch.lua
 
 -- Support for MT game translation
 
@@ -8,23 +8,48 @@ local function on_flood(pos, oldnode, newnode)
     local nodedef = minetest.registered_items[newnode.name]
     if not (nodedef and nodedef.groups and nodedef.groups.igniter and nodedef.groups.igniter > 0) then
         minetest.sound_play(
-            "default_cool_lava",
+            "ws_core_cool_lava",  -- replace with a ws_core sound
             {pos = pos, max_hear_distance = 16, gain = 0.1},
             true
         )
     end
-    -- Do not return false here to prevent placing torches automatically
     return false
 end
 
--- Light emission when carrying the torch
+-- Table to track temporary lights per player
+local player_light_nodes = {}
+
+-- Simple wood sound definition for ws_core nodes
+ws_core = ws_core or {}
+ws_core.node_sound_wood_defaults = function()
+    return {
+        footstep = {name = "ws_core_wood_footstep", gain = 0.5},
+        dig = {name = "ws_core_wood_dig", gain = 1.0},
+        dug = {name = "ws_core_wood_dug", gain = 1.0},
+        place = {name = "ws_core_wood_place", gain = 1.0},
+    }
+end
+
+-- Light and smoke emission when carrying the torch
 minetest.register_globalstep(function(dtime)
     for _, player in ipairs(minetest.get_connected_players()) do
+        local player_name = player:get_player_name()
         local wielded_item = player:get_wielded_item():get_name()
-        if wielded_item == "ws_core:torch" then
-            local pos = player:get_pos()
-            if pos then  -- Ensure pos is not nil
-                -- Adjust particle position and properties
+        local pos = player:get_pos()
+        if pos then
+            local light_pos = {x=math.floor(pos.x+0.5), y=math.floor(pos.y+1), z=math.floor(pos.z+0.5)}
+
+            local prev_pos = player_light_nodes[player_name]
+            if prev_pos and (prev_pos.x ~= light_pos.x or prev_pos.y ~= light_pos.y or prev_pos.z ~= light_pos.z) then
+                local node = minetest.get_node(prev_pos)
+                if node.name == "ws_core:temporary_light" then
+                    minetest.remove_node(prev_pos)
+                end
+                player_light_nodes[player_name] = nil
+            end
+
+            if wielded_item == "ws_core:torch" then
+                -- Flame particles
                 minetest.add_particlespawner({
                     amount = 10,
                     time = 0.25,
@@ -40,17 +65,48 @@ minetest.register_globalstep(function(dtime)
                     maxsize = 2,
                     collisiondetection = false,
                     vertical = true,
-                    texture = "ws_torch_flame.png",  -- Ensure this texture exists
+                    texture = "ws_torch_flame.png",
                 })
-                -- Simulate light by setting a glowing node near the player
-                -- Use a temporary light source node to simulate torch light without placing actual torches
-                minetest.set_node({x=pos.x, y=pos.y+1, z=pos.z}, {name="ws_core:temporary_light", param2=0})
+
+                -- Gray smoke
+                minetest.add_particlespawner({
+                    amount = 4,
+                    time = 0.25,
+                    minpos = {x=pos.x-0.3, y=pos.y+1.5, z=pos.z-0.3},
+                    maxpos = {x=pos.x+0.3, y=pos.y+2.0, z=pos.z+0.3},
+                    minvel = {x=0, y=0.2, z=0},
+                    maxvel = {x=0, y=0.4, z=0},
+                    minacc = {x=0, y=0.01, z=0},
+                    maxacc = {x=0, y=0.02, z=0},
+                    minexptime = 0.5,
+                    maxexptime = 1.2,
+                    minsize = 1,
+                    maxsize = 2,
+                    collisiondetection = false,
+                    vertical = false,
+                    texture = "ws_torch_smoke.png",
+                })
+
+                -- Set temporary light
+                local node = minetest.get_node(light_pos)
+                if node.name ~= "ws_core:temporary_light" then
+                    minetest.set_node(light_pos, {name="ws_core:temporary_light", param2=0})
+                    player_light_nodes[player_name] = light_pos
+                end
+            else
+                if prev_pos then
+                    local node = minetest.get_node(prev_pos)
+                    if node.name == "ws_core:temporary_light" then
+                        minetest.remove_node(prev_pos)
+                    end
+                    player_light_nodes[player_name] = nil
+                end
             end
         end
     end
 end)
 
--- Register the temporary light node to simulate torch light
+-- Register the temporary light node
 minetest.register_node("ws_core:temporary_light", {
     description = "Temporary Light",
     drawtype = "airlike",
@@ -61,7 +117,28 @@ minetest.register_node("ws_core:temporary_light", {
     groups = {not_in_creative_inventory=1},
 })
 
--- Torch node definition
+-- Spawn gray smoke for placed torches
+local function spawn_torch_smoke(pos)
+    minetest.add_particlespawner({
+        amount = 2,
+        time = 0.25,
+        minpos = {x=pos.x-0.1, y=pos.y+0.5, z=pos.z-0.1},
+        maxpos = {x=pos.x+0.1, y=pos.y+1.0, z=pos.z+0.1},
+        minvel = {x=0, y=0.1, z=0},
+        maxvel = {x=0, y=0.3, z=0},
+        minacc = {x=0, y=0.01, z=0},
+        maxacc = {x=0, y=0.02, z=0},
+        minexptime = 0.5,
+        maxexptime = 1.5,
+        minsize = 1,
+        maxsize = 2,
+        collisiondetection = false,
+        vertical = false,
+        texture = "ws_torch_smoke.png",
+    })
+end
+
+-- Torch node
 minetest.register_node("ws_core:torch", {
     description = "Torch",
     drawtype = "mesh",
@@ -110,15 +187,15 @@ minetest.register_node("ws_core:torch", {
     on_flood = on_flood,
     on_rotate = false,
     on_construct = function(pos)
-        minetest.get_node_timer(pos):start(0.1)
+        minetest.get_node_timer(pos):start(0.5)
     end,
     on_timer = function(pos, elapsed)
-        -- Removed particles spawning here
+        spawn_torch_smoke(pos)
         return true
     end,
 })
 
--- Wall-mounted torch node definition
+-- Wall-mounted torch node
 minetest.register_node("ws_core:torch_wall", {
     drawtype = "mesh",
     mesh = "torch_wall.obj",
@@ -139,15 +216,15 @@ minetest.register_node("ws_core:torch_wall", {
     on_flood = on_flood,
     on_rotate = false,
     on_construct = function(pos)
-        minetest.get_node_timer(pos):start(0.1)
+        minetest.get_node_timer(pos):start(0.5)
     end,
     on_timer = function(pos, elapsed)
-        -- Removed particles spawning here
+        spawn_torch_smoke(pos)
         return true
     end,
 })
 
--- LBM to convert older torch nodes to new format
+-- LBM to convert older torch nodes
 minetest.register_lbm({
     name = "ws_core:3dtorch",
     nodenames = {"ws_core:torch", "torches:floor", "torches:wall"},
@@ -160,7 +237,7 @@ minetest.register_lbm({
     end
 })
 
--- Crafting recipes for torches
+-- Crafting recipes
 minetest.register_craft({
     output = "ws_core:torch 4",
     recipe = {
