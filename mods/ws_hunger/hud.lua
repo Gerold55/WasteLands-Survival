@@ -10,6 +10,7 @@ local function thirst_get(player)
   elseif thirst_api.get_level then
     return thirst_api.get_level(player)
   end
+
   -- Fallback: try player meta commonly used by simple thirst mods
   local m = player:get_meta()
   if m:contains("ws_thirst:thirst") then
@@ -31,13 +32,18 @@ local function thirst_max()
   return 30
 end
 
+-- Helper: check creative mode
+local function is_creative(player)
+  return minetest.is_creative_enabled(player:get_player_name())
+end
+
 -- HUDBars integration (if available)
 if cfg.use_hudbars and rawget(_G, "hb") and hb.register_hudbar then
+
   hb.register_hudbar("ws_satiation", 0xFFFFFF, "Hunger",
     {icon="ws_hunger_bread.png", bgicon="ws_hunger_bread_bg.png", bar="ws_hunger_bar.png"},
     cfg.start, cfg.max, false)
 
-  -- Thirst bar only if a thirst API is present
   local has_thirst = (thirst_api ~= nil)
   if has_thirst then
     local tmax = thirst_max() or 30
@@ -47,7 +53,10 @@ if cfg.use_hudbars and rawget(_G, "hb") and hb.register_hudbar then
   end
 
   function ws_hunger.hud_init(player)
+    if is_creative(player) then return end
+
     hb.init_hudbar(player, "ws_satiation", ws_hunger.get_satiation(player))
+
     if thirst_api then
       local t = thirst_get(player) or (thirst_max() or 30)
       hb.init_hudbar(player, "ws_thirst", t, thirst_max() or 30)
@@ -55,7 +64,10 @@ if cfg.use_hudbars and rawget(_G, "hb") and hb.register_hudbar then
   end
 
   function ws_hunger.hud_update(player)
+    if is_creative(player) then return end
+
     hb.change_hudbar(player, "ws_satiation", ws_hunger.get_satiation(player))
+
     if thirst_api then
       local t = thirst_get(player)
       if t then
@@ -63,10 +75,14 @@ if cfg.use_hudbars and rawget(_G, "hb") and hb.register_hudbar then
       end
     end
   end
+
 else
-  -- Minimal fallback HUD (text) that shows both hunger and (if available) thirst
+  -- Minimal fallback HUD (text)
   local ids = {}  -- name -> {hunger_id=..., thirst_id=...}
+
   function ws_hunger.hud_init(player)
+    if is_creative(player) then return end
+
     local name = player:get_player_name()
     ids[name] = ids[name] or {}
 
@@ -97,16 +113,22 @@ else
   end
 
   function ws_hunger.hud_update(player)
+    if is_creative(player) then return end
+
     local name = player:get_player_name()
     local entry = ids[name]
     if not entry then return end
+
     if entry.hunger_id then
-      player:hud_change(entry.hunger_id, "text", "Hunger: "..ws_hunger.get_satiation(player).."/"..cfg.max)
+      player:hud_change(entry.hunger_id, "text",
+        "Hunger: "..ws_hunger.get_satiation(player).."/"..cfg.max)
     end
+
     if entry.thirst_id and thirst_api then
       local t = thirst_get(player)
       if t then
-        player:hud_change(entry.thirst_id, "text", "Thirst: "..t.."/"..(thirst_max() or 30))
+        player:hud_change(entry.thirst_id, "text",
+          "Thirst: "..t.."/"..(thirst_max() or 30))
       end
     end
   end

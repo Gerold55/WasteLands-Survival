@@ -51,60 +51,72 @@ local function check_in_beds(players)
 end
 
 local function lay_down(player, pos, bed_pos, state, skip)
-	local name = player:get_player_name()
-	local hud_flags = player:hud_get_flags()
+    local name = player:get_player_name()
+    local hud_flags = player:hud_get_flags()
 
-	if not player or not name then
-		return
-	end
+    if not player or not name then
+        return
+    end
 
-	-- stand up
-	if state ~= nil and not state then
-		local p = beds.pos[name] or nil
-		beds.player[name] = nil
-		beds.bed_position[name] = nil
-		-- skip here to prevent sending player specific changes (used for leaving players)
-		if skip then
-			return
-		end
-		if p then
-			player:set_pos(p)
-		end
+    -- stand up
+    if state ~= nil and not state then
+        local p = beds.pos[name] or nil
+        beds.player[name] = nil
+        beds.bed_position[name] = nil
 
-		-- physics, eye_offset, etc
-		player:set_eye_offset({x = 0, y = 0, z = 0}, {x = 0, y = 0, z = 0})
-		player:set_look_horizontal(math.random(1, 180) / 100)
-		player_api.player_attached[name] = false
-		player:set_physics_override(1, 1, 1)
-		hud_flags.wielditem = true
-		player_api.set_animation(player, "stand" , 30)
+        if skip then
+            return
+        end
 
-	-- lay down
-	else
-		beds.pos[name] = pos
-		beds.bed_position[name] = bed_pos
-		beds.player[name] = 1
+        if p then
+            player:set_pos(p)
+        end
 
-		-- physics, eye_offset, etc
-		player:set_eye_offset({x = 0, y = -13, z = 0}, {x = 0, y = 0, z = 0})
-		local yaw, param2 = get_look_yaw(bed_pos)
-		player:set_look_horizontal(yaw)
-		local dir = minetest.facedir_to_dir(param2)
-		-- p.y is just above the nodebox height of the 'Simple Bed' (the highest bed),
-		-- to avoid sinking down through the bed.
-		local p = {
-			x = bed_pos.x + dir.x / 2,
-			y = bed_pos.y + 0.07,
-			z = bed_pos.z + dir.z / 2
-		}
-		player:set_physics_override(0, 0, 0)
-		player:set_pos(p)
-		player_api.player_attached[name] = true
-		hud_flags.wielditem = false
-		player_api.set_animation(player, "lay" , 0)
-	end
+        player:set_eye_offset({x = 0, y = 0, z = 0}, {x = 0, y = 0, z = 0})
+        player:set_look_horizontal(math.random(1, 180) / 100)
+        player_api.player_attached[name] = false
 
-	player:hud_set_flags(hud_flags)
+        -- FIXED: must be a table
+        player:set_physics_override({
+            speed = 1,
+            jump = 1,
+            gravity = 1,
+        })
+
+        hud_flags.wielditem = true
+        player_api.set_animation(player, "stand", 30)
+
+    -- lay down
+    else
+        beds.pos[name] = pos
+        beds.bed_position[name] = bed_pos
+        beds.player[name] = 1
+
+        player:set_eye_offset({x = 0, y = -13, z = 0}, {x = 0, y = 0, z = 0})
+        local yaw, param2 = get_look_yaw(bed_pos)
+        player:set_look_horizontal(yaw)
+        local dir = minetest.facedir_to_dir(param2)
+
+        local p = {
+            x = bed_pos.x + dir.x / 2,
+            y = bed_pos.y + 0.07,
+            z = bed_pos.z + dir.z / 2
+        }
+
+        -- FIXED: must be a table
+        player:set_physics_override({
+            speed = 0,
+            jump = 0,
+            gravity = 0,
+        })
+
+        player:set_pos(p)
+        player_api.player_attached[name] = true
+        hud_flags.wielditem = false
+        player_api.set_animation(player, "lay", 0)
+    end
+
+    player:hud_set_flags(hud_flags)
 end
 
 local function get_player_in_bed_count()

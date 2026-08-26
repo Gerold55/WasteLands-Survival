@@ -41,12 +41,12 @@ triggers.register_on_join({
     end,
 })
 
--- Journal discovery and main story
+-- Journal discovery and main story (Family-Friendly Wasteland Edition)
 local function find_journal(player_name)
     entries.add_entry(player_name, "ws_story:survivor",
-        "Today I found this old journal. " ..
-        "Poor bastard who left this behind... I guess I'll just write a bit about my own life into this. " ..
-        "Today even my last rations came to an end. Will I be the next victim of these wastelands?", true)
+        "Today I found an old journal. Whoever owned it before must have faced the same hardships I do now. " ..
+        "I suppose I’ll continue their story with my own. My last rations ran out today… I need to stay strong. " ..
+        "The wasteland is harsh, but I won’t give up.", true)
 end
 
 triggers.register_on_join({
@@ -54,42 +54,47 @@ triggers.register_on_join({
     call_once = true,
     call = function(data)
         find_journal(data.playerName)
-        -- Enhanced plot with better pacing
+
+        -- Enhanced plot with smoother pacing and family-friendly tone
         minetest.after(10, entries.add_entry, data.playerName, "ws_story:survivor",
-            "But first let me explain what happened: Robbers stole a secret formula from the military, a bio weapon. " ..
-            "On their flight, it got dropped into some water and quickly spread into the oceans. " ..
-            "A while later this killed the whole planet; food and clean water became too rare for humans to survive. " ..
-            "Now me and perhaps a small group of other survivors live in these wastelands.", false)
+            "Before I go any further, I should explain what happened. Long ago, a dangerous formula was stolen " ..
+            "from a military research group. During the escape, it spilled into the water and spread across the oceans. " ..
+            "Over time, the world changed. Clean food and water became rare, and people struggled to survive. " ..
+            "Now only a few of us remain in these wastelands.", false)
+
         minetest.after(20, entries.add_entry, data.playerName, "ws_story:survivor",
-            "Also, there are ogres and other evil critters. " ..
-            "They were formed by all sorts of animals and also humans who suffered from the toxic water.", false)
+            "Strange creatures roam the land now—ogres, giant insects, and other unusual beings. " ..
+            "Many were once animals or even people, changed by the contaminated water. " ..
+            "They’re not all hostile, but caution is always wise.", false)
+
         minetest.after(30, entries.add_entry, data.playerName, "ws_story:survivor",
-            "I have to survive somehow. I'll need something to craft other than my hands. " ..
-            "If I had a wooden table to put the stuff on, that would make things easier.", false)
+            "If I’m going to make it out here, I’ll need tools. Crafting with bare hands only gets me so far. " ..
+            "A simple wooden table would help me organize materials and build better equipment.", false)
+
         minetest.after(45, entries.add_entry, data.playerName, "ws_story:survivor",
-            "The previous owner mentioned something about landmarks... " ..
-            "Maybe I should mark interesting locations I find. Right-click with empty hand to mark a spot.", false)
+            "The journal’s previous owner mentioned landmarks. That might be useful. " ..
+            "I should mark any important places I find. A simple right-click with an empty hand should do it.", false)
     end,
 })
 
--- Enhanced death system with progression
+-- Enhanced death system with progression (Family-Friendly Wasteland Edition)
 local death_counters = {}
 triggers.register_on_die(function(data)
     death_counters[data.playerName] = (death_counters[data.playerName] or 0) + 1
     
     local death_msgs = {
-        "I barely escaped death... This journal almost had a new owner.",
-        "That was close. Too close. The wasteland nearly claimed me.",
-        "I need to be more careful. The previous owner probably died like this.",
-        "Death brushed past me. How many more chances will I get?"
+        "That was a close call… I need to stay alert out here.",
+        "The wasteland nearly got the better of me. I must move carefully.",
+        "I stumbled today, but I’m still standing. I won’t let this place defeat me.",
+        "Another narrow escape. Survival means learning from every mistake."
     }
     
     if death_counters[data.playerName] == 1 then
         entries.add_entry(data.playerName, "ws_story:survivor",
-            "First brush with death... This changes your perspective.", true)
+            "My first real brush with danger… It reminds me how fragile life is out here.", true)
     elseif death_counters[data.playerName] >= 3 then
         entries.add_entry(data.playerName, "ws_story:survivor",
-            "I'm getting reckless. Surviving means staying alive, not testing limits.", true)
+            "I’m taking too many risks. If I want to survive, I need to slow down and think things through.", true)
     else
         entries.add_entry(data.playerName, "ws_story:survivor", 
             random_msg(death_msgs), true)
@@ -114,14 +119,14 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
     end
 end)
 
-minetest.register_on_punchnode(function(pos, node, puncher, pointed_thing)
-    local player_name = puncher:get_player_name()
-    if player_name and puncher:get_wielded_item():is_empty() then
-        location_memory[player_name] = pos
-        minetest.show_formspec(player_name, "ws_story:mark_location", 
-            "field[location_name;Name this location;]")
-    end
-end)
+-- minetest.register_on_punchnode(function(pos, node, puncher, pointed_thing)
+--     local player_name = puncher:get_player_name()
+--     if player_name and puncher:get_wielded_item():is_empty() then
+--         location_memory[player_name] = pos
+--         minetest.show_formspec(player_name, "ws_story:mark_location", 
+--             "field[location_name;Name this location;]")
+--     end
+-- end)
 
 -- Enhanced wood breaking with location awareness
 triggers.register_on_dig({
@@ -170,60 +175,60 @@ local function random_msg(list)
     return list[math.random(1, #list)]
 end
 
--- Enhanced creature encounters with location context
+-- Enhanced creature encounters with location context (Family-Friendly Wasteland Edition)
 local creature_encounters = {
     ["mobs:bigfoot"] = {
         msgs = {
-            "Erm... black Yeti?",
-            "Saw a bigfoot today...",
-            "♭Bigfoot? Nah... right? RIGHT?♭"
+            "A towering figure moved between the trees. Looked like a forest giant.",
+            "I spotted something huge and hairy. Might’ve been Bigfoot.",
+            "Saw a large silhouette watching from the woods. Hope it’s friendly."
         },
         location = "forest"
     },
     ["mobs:yeti"] = {
         msgs = {
-            "I found white bigfoot ...",
-            "Erm... yeti1?!?",
-            "Saw a Yeti, am I in Frozen 2?!?"
+            "A white, snow-covered giant wandered past. A real wasteland yeti.",
+            "Caught sight of a tall creature in the snow. Looked peaceful enough.",
+            "A fluffy white giant crossed my path. The cold doesn’t bother it at all."
         },
         location = "snow"
     },
     ["mobs:sand_worm"] = {
         msgs = {
-            "♭NOOOOOO♭  Giant worms are real ppl.",
-            "walking... see giant worm ... prayed",
-            "Nahhhhhhhh Im done with this (giant worm)"
+            "The desert shifted today… a massive sand worm surfaced for a moment.",
+            "Saw a huge worm rise from the dunes. The wasteland never stops surprising me.",
+            "A giant sand creature moved beneath my feet. Best to tread lightly out here."
         },
         location = "desert"
     },
     ["mobs:spider"] = {
         msgs = {
-            "Spiders, i wanna become spiderman",
-            "Spooder found today,  ♭Spooderman, Spooderman...♭",
-            "Found some fresh webs, seems spidey was around."
+            "Found a large spider in the caves. It kept its distance, thankfully.",
+            "Saw fresh webs stretched across the rocks. Something big lives here.",
+            "A cave spider skittered past. Quick little thing, but harmless if left alone."
         },
         location = "caves"
     },
     ["mobs:ogre"] = {
         msgs = {
-            "Shrek?!?!?!?!",
-            "Ogre big, Ogre bad >:{ ",
-            "I saw a big moving rock today, but it was green."
+            "A massive green ogre lumbered across the mountains. Strong, but calm.",
+            "Spotted an ogre today. It looked curious more than anything.",
+            "Thought I saw a moving boulder… turns out it was an ogre taking a stroll."
         },
         location = "mountains"
     },
     ["mobs:piranha"] = {
         msgs = {
-            "♭ Dem Rivers be harboring some goodies♭ Got bitten by sum goofy ahh fish.",
-            "Splashing in the contaminated water was a mistake. Now I'm bleeding XD",
-            "Tiny fish + big teeth = : ( "
+            "The rivers here have tiny fish with sharp instincts. Best to stay cautious.",
+            "A piranha nibbled at my boot today. Quick little swimmers.",
+            "Small fish with big energy live in these waters. They keep you on your toes."
         },
         location = "water"
     }
 }
 
 -- Register all creature encounters
-for mob, data in pairs(creature_encounters) do
+--for mob, data in pairs(creature_encounters) do
     ---#FIXME
     --[[
     triggers.register_on_punch({
@@ -236,7 +241,7 @@ for mob, data in pairs(creature_encounters) do
         end,
     })
     --]]
-end
+--end
 
 -- Enhanced dew barrel system with progression
 triggers.register_counter("ws_story:dew_barrel_count", "craft", "dewcollector:barrel_closed", false)
@@ -364,3 +369,5 @@ minetest.register_on_leaveplayer(function(player)
 end)
 
 minetest.log("action", "[ws_story] Enhanced survivor journal system loaded")
+
+return creature_encounters

@@ -136,9 +136,9 @@ local function register_ores()
             cluster_size = 5,
         })
     end
-    ore_blob("iron",    20, -30)
-    ore_blob("gold",    20, -30)
-    ore_blob("diamond", 20, -30)
+    ore_blob("stone_with_iron",    20, -30)
+    ore_blob("stone_with_gold",    20, -30)
+    ore_blob("stone_with_diamond", 20, -30)
 end
 register_ores()
 

@@ -180,62 +180,6 @@ minetest.register_globalstep(function(dtime)
     last_timeofday = last_timeofday + dtime
 end)
 
--- Use a periodic timer to unlock once per configured real-time interval (adjust as needed).
-local unlock_timer = 0
-local UNLOCK_INTERVAL = 600 -- seconds (10 minutes) -> treat as one "night" for unlocking
-minetest.register_globalstep(function(dtime)
-    unlock_timer = unlock_timer + dtime
-    if unlock_timer < UNLOCK_INTERVAL then return end
-    unlock_timer = 0
-
-    for _, player in ipairs(minetest.get_connected_players()) do
-        local data = get_journal(player)
-        local idx = data.next_flashback
-        if flashbacks[idx] then
-            -- Add flashback object (title/body) to player's unlocked list
-            table.insert(data.flashbacks, { title = flashbacks[idx].title, body = flashbacks[idx].body })
-            data.next_flashback = idx + 1
-            save_journal(player, data)
-            minetest.chat_send_player(player:get_player_name(),
-                minetest.colorize("#d0c060", "[Journal] A memory returns. Open your journal to read it."))
-            -- make hud icon briefly pulse (remove/add) as attention ping
-            local hid = player:get_meta():get_int("ws_journal:hud_id")
-            if hid and hid > 0 then
-                -- crude pulse: hide then show after small delay
-                player:hud_remove(hid)
-                minetest.after(0.2, function()
-                    if player:is_player() then
-                        local newhid = player:hud_add({
-                            hud_elem_type = "image",
-                            position = {x = 0.98, y = 0.05},
-                            offset = {x = -32, y = 0},
-                            text = "ws_journal_icon.png",
-                            scale = {x = 1.2, y = 1.2},
-                            alignment = {x = -1, y = 1},
-                        })
-                        player:get_meta():set_int("ws_journal:hud_id", newhid)
-                        -- revert size after 1.5s
-                        minetest.after(1.5, function()
-                            if player:is_player() then
-                                player:hud_remove(newhid)
-                                local finalhid = player:hud_add({
-                                    hud_elem_type = "image",
-                                    position = {x = 0.98, y = 0.05},
-                                    offset = {x = -32, y = 0},
-                                    text = "ws_journal_icon.png",
-                                    scale = {x = 1, y = 1},
-                                    alignment = {x = -1, y = 1},
-                                })
-                                player:get_meta():set_int("ws_journal:hud_id", finalhid)
-                            end
-                        end)
-                    end
-                end)
-            end
-        end
-    end
-end)
-
 -- Handle formspec input
 minetest.register_on_player_receive_fields(function(player, formname, fields)
     if formname ~= "ws_journal:fs" then return end
@@ -350,4 +294,60 @@ function ws_journal.advance_day_for(player)
     local data = get_journal(player)
     data.day_counter = (data.day_counter or 1) + 1
     save_journal(player, data)
+end
+
+if beds and beds.register_on_sleep then
+    beds.register_on_sleep(function(player)
+        local data = get_journal(player)
+        local idx = data.next_flashback
+
+        if flashbacks[idx] then
+            -- unlock the next flashback
+            table.insert(data.flashbacks, {
+                title = flashbacks[idx].title,
+                body  = flashbacks[idx].body
+            })
+
+            data.next_flashback = idx + 1
+            save_journal(player, data)
+
+            -- notify player
+            minetest.chat_send_player(player:get_player_name(),
+                minetest.colorize("#d0c060",
+                "[Journal] A memory returns. Open your journal to read it."))
+
+            -- pulse HUD icon
+            local hid = player:get_meta():get_int("ws_journal:hud_id")
+            if hid and hid > 0 then
+                player:hud_remove(hid)
+                minetest.after(0.2, function()
+                    if player:is_player() then
+                        local newhid = player:hud_add({
+                            hud_elem_type = "image",
+                            position = {x = 0.98, y = 0.05},
+                            offset = {x = -32, y = 0},
+                            text = "ws_journal_icon.png",
+                            scale = {x = 1.2, y = 1.2},
+                            alignment = {x = -1, y = 1},
+                        })
+                        player:get_meta():set_int("ws_journal:hud_id", newhid)
+                        minetest.after(1.5, function()
+                            if player:is_player() then
+                                player:hud_remove(newhid)
+                                local finalhid = player:hud_add({
+                                    hud_elem_type = "image",
+                                    position = {x = 0.98, y = 0.05},
+                                    offset = {x = -32, y = 0},
+                                    text = "ws_journal_icon.png",
+                                    scale = {x = 1, y = 1},
+                                    alignment = {x = -1, y = 1},
+                                })
+                                player:get_meta():set_int("ws_journal:hud_id", finalhid)
+                            end
+                        end)
+                    end
+                end)
+            end
+        end
+    end)
 end

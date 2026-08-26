@@ -43,18 +43,17 @@ content.blacksmithing = {
     images = { "ws_manual/textures/forge_example.png" }
 }
 
--- DNA analyzer guide (show if mod present)
 content.dna = {
-    title = "DNA Analyzer (ws_lab)",
+    title = "DNA Analyzer (apocdna)",
     body = table.concat({
-        "The DNA Analyzer decodes biological samples to reveal mutations and potential uses.",
+        "The DNA Analyzer processes biological samples and extracts usable genetic information.",
         "",
         "Workflow:",
-        "1) Collect sample -> Sample Vial",
-        "2) At DNA Analyzer, insert vial -> wait for analysis",
-        "3) Extract data -> recipe/blueprint unlock or mutation log entry",
+        "1) Collect organic material and store it in a Sample Vial.",
+        "2) Insert the vial into the DNA Analyzer and allow the scan to complete.",
+        "3) Retrieve the decoded data to unlock mutations, traits, or restoration blueprints.",
     }, "\n"),
-    items = { "ws_lab:analyzer", "ws_lab:sample_vial" }
+    items = { "apocdna:genome_analyzer", "apocdna:sample_vial" }
 }
 
 -- Misc / mod-agnostic quick recipes
