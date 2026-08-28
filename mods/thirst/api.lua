@@ -1,18 +1,14 @@
--- Thirst API
+-- Thirst API (ws_hud version)
 
 local damage_enabled = minetest.settings:get_bool("enable_damage")
 
 if damage_enabled then
-
-    hb.register_hudbar("thirst", 0xFFFFFF, "Thirst", { icon = "thirst_hud_icon.png", bgicon = "thirst_hud_bg.png",  bar = "" }, 20, 30, false)
 
     -- Global table, which contains the API
     thirst = {}
 
     -- Maximum thirst value, and default for new players.
     thirst.max_thirst = 20
-
-    -- Local var for easier use, don't ask me why
     max_thirst = 20
 
     -- Every x seconds, the player thirst is decreased by 1 if they're in water.
@@ -27,64 +23,50 @@ if damage_enabled then
     -- Every x seconds, thirst data is saved.
     thirst.data_storage_rate = 10
 
+    ----------------------------------------------------------------------
+    -- API FUNCTIONS
+    ----------------------------------------------------------------------
+
     -- Returns the thirst a player has, or nil if the player does not exist.
     thirst.get_player_thirst = function(name)
-
         local player = minetest.get_player_by_name(name)
+        if not player then return nil end
 
-        if player then
+        local meta = player:get_meta()
+        local pthirst = meta:get("thirst")
 
-            local meta = player:get_meta()
-
-            local pthirst = meta:get("thirst")
-
-            if not pthirst then
-
-                meta:set_int("thirst", max_thirst)
-
-                pthirst = max_thirst
-            end
-
-            return tonumber(pthirst)
+        if not pthirst then
+            meta:set_int("thirst", max_thirst)
+            pthirst = max_thirst
         end
 
-        return nil
+        return tonumber(pthirst)
     end
 
     -- Sets player thirst to a value.
     thirst.set_player_thirst = function(name, amount)
-
         local player = minetest.get_player_by_name(name)
+        if not player then return end
 
-        if player then
+        if amount > max_thirst then amount = max_thirst end
+        if amount < 0 then amount = 0 end
 
-            local meta = player:get_meta()
+        local meta = player:get_meta()
+        meta:set_int("thirst", amount)
 
-            if amount > max_thirst then
-                amount = max_thirst
-            end
-
-            if amount < 0 then
-                amount = 0
-            end
-
-            meta:set_int("thirst", amount)
-
-            hb.change_hudbar(player, "thirst", amount, max_thirst, "thirst_hud_icon.png", "thirst_hud_bg.png",  "", "Thirst", 0xFFFF)
-        end
+        -- Update HUD
+        ws_hud.update(player)
     end
 
     -- Returns true if the player is in a drinkable liquid; false otherwise.
     thirst.is_player_in_water = function(name)
-
         local player = minetest.get_player_by_name(name)
+        if not player then return false end
 
         local pos = player:get_pos()
-
         local node = minetest.get_node_or_nil(pos)
 
         if node then
-
             return node.name == "ws_core:water_source"
         end
 
@@ -93,91 +75,74 @@ if damage_enabled then
 
     -- Decreases player thirst by an amount.
     thirst.decrease_thirst = function(name, amount)
-
         local pthirst = thirst.get_player_thirst(name)
-
         thirst.set_player_thirst(name, pthirst + amount)
     end
 
-    -- Adding the thirst HUD to new players.
+    ----------------------------------------------------------------------
+    -- PLAYER JOIN / RESPAWN
+    ----------------------------------------------------------------------
+
     minetest.register_on_joinplayer(function(player)
-
         local name = player:get_player_name()
-
-        hb.init_hudbar(player, "thirst", thirst.get_player_thirst(name), max_thirst, false)
+        local t = thirst.get_player_thirst(name)
+        thirst.set_player_thirst(name, t) -- ensures HUD sync
     end)
 
-    -- Reset player thirst on die.
     minetest.register_on_respawnplayer(function(player)
-
         local name = player:get_player_name()
-
         thirst.set_player_thirst(name, max_thirst)
     end)
 
+    ----------------------------------------------------------------------
+    -- GLOBALSTEP
+    ----------------------------------------------------------------------
+
     local timer = 0
-
     local timer2 = 0
-
     local timer_store_data = 0
 
-    -- Globalstep to run everything.
     minetest.register_globalstep(function(dtime)
+        timer = timer + dtime
+        timer2 = timer2 + dtime
+        timer_store_data = timer_store_data + dtime
 
-        if dtime then
-
-            timer = timer + dtime
-
-            timer2 = timer2 + dtime
-
-            timer_store_data = timer_store_data + dtime
+        -- Water quench
+        if timer >= thirst.water_quench_rate then
+            timer = 0
+            for _, player in ipairs(minetest.get_connected_players()) do
+                local name = player:get_player_name()
+                if thirst.is_player_in_water(name) then
+                    thirst.decrease_thirst(name, 1)
+                end
+            end
         end
 
-        if timer >= thirst.water_quench_rate then
-
-            timer = 0
-
-            for index, player in pairs(minetest.get_connected_players()) do
-
+        -- Thirst increase + HP penalty
+        if timer2 >= thirst.thirst_rate then
+            timer2 = 0
+            for _, player in ipairs(minetest.get_connected_players()) do
                 local name = player:get_player_name()
 
-                if name then
+                if not thirst.is_player_in_water(name) then
+                    if thirst.get_player_thirst(name) > 1 then
+                        thirst.decrease_thirst(name, -1)
+                    end
 
-                    local pos = player:get_pos()
-
-                    local node = minetest.get_node_or_nil(pos)
-
-                    if thirst.is_player_in_water(name) then
-
-                        thirst.decrease_thirst(name, 1)
+                    if thirst.get_player_thirst(name) < 2 then
+                        player:set_hp(player:get_hp() - thirst.hp_penalty)
                     end
                 end
             end
         end
 
-        if timer2 >= thirst.thirst_rate then
-
-            timer2 = 0
-
-            for index, player in pairs(minetest.get_connected_players()) do
-
+        -- Optional: save thirst to disk periodically
+        if timer_store_data >= thirst.data_storage_rate then
+            timer_store_data = 0
+            for _, player in ipairs(minetest.get_connected_players()) do
                 local name = player:get_player_name()
-
-                if name then
-                    
-                    if not thirst.is_player_in_water(name) then
-
-                        if thirst.get_player_thirst(name) > 1 then
-
-                            thirst.decrease_thirst(name, -1)
-                        end
-
-                        if thirst.get_player_thirst(name) < 2 then
-
-                            player:set_hp(player:get_hp() - thirst.hp_penalty)
-                        end
-                    end
-                end
+                local meta = player:get_meta()
+                meta:set_int("thirst", thirst.get_player_thirst(name))
             end
         end
     end)

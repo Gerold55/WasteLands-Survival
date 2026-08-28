@@ -1,6 +1,3 @@
--- ws_achievements: Achievement system for Wastelands Survival
--- Compatible with ws_story journal system
-
 local achievements = {}
 achievements.registered_achievements = {}
 achievements.player_achievements = {}
@@ -22,6 +19,11 @@ function achievements.register_achievement(id, def)
     achievements.registered_achievements[id] = def
 end
 
+-- Check if player has achievement
+function achievements.has_achievement(player_name, achievement_id)
+    return achievements.player_achievements[player_name] and 
+           achievements.player_achievements[player_name][achievement_id]
+end
 -- Grant achievement to player
 function achievements.grant_achievement(player_name, achievement_id)
     if not achievements.registered_achievements[achievement_id] then
@@ -54,12 +56,6 @@ function achievements.grant_achievement(player_name, achievement_id)
     return false
 end
 
--- Check if player has achievement
-function achievements.has_achievement(player_name, achievement_id)
-    return achievements.player_achievements[player_name] and 
-           achievements.player_achievements[player_name][achievement_id]
-end
-
 -- Show achievement notification
 function achievements.show_achievement(player_name, achievement_id)
     local achievement = achievements.registered_achievements[achievement_id]
@@ -68,7 +64,6 @@ function achievements.show_achievement(player_name, achievement_id)
     local player = minetest.get_player_by_name(player_name)
     if not player then return end
     
-    -- Create formspec for achievement notification
     local formspec = "size[8,3.5]" ..
         "bgcolor[#1E1E1E;false]" ..
         "background9[0,0;8,3.5;ws_achievements_bg.png;false;10]" ..
@@ -80,64 +75,125 @@ function achievements.show_achievement(player_name, achievement_id)
     
     minetest.show_formspec(player_name, "ws_achievements:notification_" .. achievement_id, formspec)
     
-    -- Auto-close after 5 seconds
     minetest.after(5, function()
         achievements.hide_achievement(player_name, achievement_id)
     end)
 end
 
--- Hide achievement notification
 function achievements.hide_achievement(player_name, achievement_id)
     local player = minetest.get_player_by_name(player_name)
     if player then
         minetest.close_formspec(player_name, "ws_achievements:notification_" .. achievement_id)
     end
 end
-
--- Achievement list GUI
-function achievements.show_achievement_list(player_name)
+-- Unified Achievement Menu (All achievements in one list)
+function achievements.show_achievement_menu(player_name, selected_achievement_id)
     local player_achievements = achievements.player_achievements[player_name] or {}
-    local formspec = "size[10,9]" ..
-        "bgcolor[#1E1E1E;false]" ..
-        "background9[0,0;10,9;ws_achievements_bg.png;false;10]" ..
-        "label[0.5,0.5;" .. minetest.colorize("#FFFFFF", "Wastelands Survival Achievements") .. "]" ..
-        "textlist[0.5,1;9,7.5;achievement_list;"
-    
-    -- Build achievement list
-    local achievement_count = 0
+
+    -- Build unified achievement list
+    local list_str = ""
+    local ach_index_map = {}
     local unlocked_count = 0
-    
-    for category_id, category in pairs(achievements.categories) do
-        formspec = formspec .. minetest.colorize(category.color, "--- " .. category.name .. " ---,")
-        achievement_count = achievement_count + 1
-        
-        for achievement_id, achievement in pairs(achievements.registered_achievements) do
-            if achievement.category == category_id then
-                local status = achievements.has_achievement(player_name, achievement_id) and "✓ " or "○ "
-                local entry = status .. achievement.title
-                if achievements.has_achievement(player_name, achievement_id) then
-                    entry = entry .. " - " .. achievement.description
-                    unlocked_count = unlocked_count + 1
-                else
-                    entry = entry .. " - ???"
-                end
-                formspec = formspec .. minetest.formspec_escape(entry) .. ","
-                achievement_count = achievement_count + 1
+    local total_count = 0
+    local idx = 1
+
+    -- Sort achievements alphabetically
+    local sorted = {}
+    for id, def in pairs(achievements.registered_achievements) do
+        sorted[#sorted + 1] = {id = id, def = def}
+    end
+    table.sort(sorted, function(a, b)
+        return a.def.title < b.def.title
+    end)
+
+    for _, entry in ipairs(sorted) do
+        local achievement_id = entry.id
+        local def = entry.def
+
+        total_count = total_count + 1
+        local unlocked = achievements.has_achievement(player_name, achievement_id)
+        if unlocked then unlocked_count = unlocked_count + 1 end
+
+        local status = unlocked and "✓ " or "○ "
+        local title = status .. def.title
+
+        list_str = list_str .. minetest.formspec_escape(title) .. ","
+        ach_index_map[idx] = achievement_id
+        idx = idx + 1
+    end
+
+    -- Selected achievement details
+    local detail_title = "Select an achievement"
+    local detail_desc = ""
+    local detail_how = ""
+
+    if selected_achievement_id and achievements.registered_achievements[selected_achievement_id] then
+        local def = achievements.registered_achievements[selected_achievement_id]
+        detail_title = def.title
+        detail_desc = def.description or ""
+        detail_how = def.how or "Complete the requirement to unlock this achievement."
+    end
+
+    local formspec =
+        "size[13,9]" ..
+        "bgcolor[#1E1E1E;false]" ..
+        "background9[0,0;13,9;ws_achievements_bg.png;false;10]" ..
+
+        -- Header
+        "label[0.5,0.3;" .. minetest.colorize("#FFFFFF", "Wastelands Survival Achievements") .. "]" ..
+
+        -- Unified list panel
+        "box[0.4,1.4;6,7.2;#00000055]" ..
+        "label[0.6,1.5;" .. minetest.colorize("#CCCCCC", "All Achievements") .. "]" ..
+        "textlist[0.6,1.9;5.7,6.6;ach_list;" .. list_str .. "]" ..
+
+        -- Details panel
+        "box[6.7,1.4;6,7.2;#00000055]" ..
+        "label[6.9,1.5;" .. minetest.colorize("#FFFFFF", detail_title) .. "]" ..
+        "textarea[6.9,2.0;5.7,2.5;;" .. minetest.formspec_escape(detail_desc) .. ";]" ..
+        "label[6.9,4.7;" .. minetest.colorize("#CCCCCC", "How to Unlock") .. "]" ..
+        "textarea[6.9,5.1;5.7,3.0;;" .. minetest.formspec_escape(detail_how) .. ";]" ..
+
+        -- Progress
+        "label[0.5,8.3;" .. minetest.colorize("#FFFFFF",
+            "Progress: " .. unlocked_count .. "/" .. total_count .. " achievements unlocked") .. "]" ..
+
+        "button_exit[11,8.2;2,0.7;close;Close]"
+
+    -- Store mapping for click resolution
+    achievements._ui_state = achievements._ui_state or {}
+    achievements._ui_state[player_name] = {
+        ach_index_map = ach_index_map,
+    }
+
+    minetest.show_formspec(player_name, "ws_achievements:menu", formspec)
+end
+
+minetest.register_on_player_receive_fields(function(player, formname, fields)
+    if formname ~= "ws_achievements:menu" then return end
+    local name = player:get_player_name()
+    local state = achievements._ui_state[name]
+    if not state then return end
+
+    if fields.ach_list then
+        local event = minetest.explode_textlist_event(fields.ach_list)
+
+        -- Some Minetest versions use CHG, others use DCL
+        if event.type == "CHG" or event.type == "DCL" then
+            local idx = event.index
+            local achievement_id = state.ach_index_map[idx]
+
+            if achievement_id then
+                achievements.show_achievement_menu(name, achievement_id)
             end
         end
     end
-    
-    formspec = formspec .. "]" ..
-        "label[0.5,8.5;" .. minetest.colorize("#FFFFFF", "Progress: " .. unlocked_count .. "/" .. achievement_count .. " achievements unlocked") .. "]" ..
-        "button_exit[8,8.5;2,0.5;close;Close]"
-    
-    minetest.show_formspec(player_name, "ws_achievements:list", formspec)
-end
+end)
 
--- Register achievements
 achievements.register_achievement("first_steps", {
     title = "First Steps",
     description = "Survive your first day in the wasteland",
+    how = "Stay alive through one full day-night cycle.",
     category = "survival",
     icon = "ws_achievements_first_steps.png"
 })
@@ -145,6 +201,7 @@ achievements.register_achievement("first_steps", {
 achievements.register_achievement("journal_finder", {
     title = "Chronicler",
     description = "Discover the survivor's journal",
+    how = "Find and open the survivor's journal in the world.",
     category = "story",
     icon = "ws_achievements_journal.png"
 })
@@ -152,6 +209,7 @@ achievements.register_achievement("journal_finder", {
 achievements.register_achievement("crafting_master", {
     title = "Crafting Apprentice",
     description = "Craft your first crafting table",
+    how = "Gather basic resources and craft a crafting table.",
     category = "crafting",
     icon = "ws_achievements_crafting.png"
 })
@@ -159,6 +217,7 @@ achievements.register_achievement("crafting_master", {
 achievements.register_achievement("water_collector", {
     title = "Water Collector",
     description = "Craft your first dew collector barrel",
+    how = "Craft a dew collector barrel from the dewcollector mod.",
     category = "survival",
     icon = "ws_achievements_water.png"
 })
@@ -166,6 +225,7 @@ achievements.register_achievement("water_collector", {
 achievements.register_achievement("first_shelter", {
     title = "Homesteader",
     description = "Place your first door",
+    how = "Place any door or gate to mark your first shelter.",
     category = "survival",
     icon = "ws_achievements_shelter.png"
 })
@@ -173,6 +233,7 @@ achievements.register_achievement("first_shelter", {
 achievements.register_achievement("ore_miner", {
     title = "Ore Miner",
     description = "Mine your first valuable ore",
+    how = "Mine iron, copper, gold, or diamond ore.",
     category = "crafting",
     icon = "ws_achievements_mining.png"
 })
@@ -180,6 +241,7 @@ achievements.register_achievement("ore_miner", {
 achievements.register_achievement("monster_slayer", {
     title = "Monster Slayer",
     description = "Defeat your first hostile creature",
+    how = "Kill any hostile mob from the mobs mod.",
     category = "combat",
     icon = "ws_achievements_combat.png"
 })
@@ -187,6 +249,7 @@ achievements.register_achievement("monster_slayer", {
 achievements.register_achievement("explorer", {
     title = "Explorer",
     description = "Discover 5 different landmarks",
+    how = "Travel the world and find at least five unique landmarks.",
     category = "exploration",
     icon = "ws_achievements_exploration.png"
 })
@@ -194,6 +257,7 @@ achievements.register_achievement("explorer", {
 achievements.register_achievement("chef", {
     title = "Chef",
     description = "Cook your first proper meal",
+    how = "Craft cooked food like bread, meat, or fish.",
     category = "survival",
     icon = "ws_achievements_cooking.png"
 })
@@ -201,15 +265,14 @@ achievements.register_achievement("chef", {
 achievements.register_achievement("master_survivor", {
     title = "Master Survivor",
     description = "Survive for 10 in-game days",
+    how = "Stay alive for ten full day-night cycles.",
     category = "survival",
     icon = "ws_achievements_master.png"
 })
-
 -- Integration with ws_story triggers
 if minetest.get_modpath("ws_story") then
     local triggers = journal.require("triggers")
     
-    -- Journal discovery
     triggers.register_on_join({
         id = "ws_achievements:journal",
         call_once = true,
@@ -220,7 +283,6 @@ if minetest.get_modpath("ws_story") then
         end,
     })
     
-    -- Crafting table
     triggers.register_on_craft({
         target = "crafting:crafting_table",
         id = "ws_achievements:crafting_table",
@@ -230,7 +292,6 @@ if minetest.get_modpath("ws_story") then
         end,
     })
     
-    -- Dew collector
     triggers.register_on_craft({
         target = "dewcollector:barrel_closed",
         id = "ws_achievements:dew_collector",
@@ -240,7 +301,6 @@ if minetest.get_modpath("ws_story") then
         end,
     })
     
-    -- First door
     triggers.register_on_place({
         target = {"group:door", "group:gate"},
         id = "ws_achievements:first_door",
@@ -258,11 +318,9 @@ minetest.register_globalstep(function(dtime)
         local player_name = player:get_player_name()
         local time_of_day = minetest.get_timeofday()
         
-        -- Check for new day (time resets near 0)
         if time_of_day < 0.1 and not player_days[player_name] then
             player_days[player_name] = true
             
-            -- Grant first steps achievement after first day/night cycle
             if not achievements.has_achievement(player_name, "first_steps") then
                 achievements.grant_achievement(player_name, "first_steps")
             end
@@ -320,24 +378,23 @@ minetest.register_on_craft(function(itemstack, player, old_craft_grid, craft_inv
         end
     end
 end)
-
--- Chat command to view achievements
 minetest.register_chatcommand("achievements", {
     description = "View your unlocked achievements",
     func = function(name, param)
-        achievements.show_achievement_list(name)
+        achievements.show_achievement_menu(name, nil, nil)
         return true
     end,
 })
 
--- Cleanup on player leave
 minetest.register_on_leaveplayer(function(player)
     local player_name = player:get_player_name()
     player_days[player_name] = nil
+    if achievements._ui_state then
+        achievements._ui_state[player_name] = nil
+    end
 end)
 
--- Register achievements as a global table
 ws_achievements = achievements
 
-minetest.log("action", "[ws_achievements] Achievement system loaded with " .. 
+minetest.log("action", "[ws_achievements] Achievement system loaded with " ..
     #achievements.registered_achievements .. " achievements")

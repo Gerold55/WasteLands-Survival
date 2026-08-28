@@ -23,7 +23,7 @@ end
 -- Apply sky and moon for a single player
 function ws_moon._apply_sky(player, phase)
   if not (player and player.is_player and player:is_player()) then return end
-  local texture = string.format("ws_moon_%d_%s.png", phase, style_for(player))
+  local texture = string.format("moon_%d_%s.png", phase, style_for(player))
 
   local sky = {
     sky_data = {

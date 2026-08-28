@@ -1,0 +1,55 @@
+{
+  "collect_water": {
+    "id": "prologue",
+    "title": "Prologue: Wake Up Call",
+    "desc": "Your cryo-pod forced an emergency thaw. Review your system logs to understand what went wrong inside Vault 07.",
+    "chapter": "getting_started",
+    "pos": [0, 0],
+    "requires": [],
+    "icon": "default_water.png",
+    "tasks": [
+      { "id": "bucket:bucket_water", "name": "Water Bucket", "icon": "bucket_water.png", "count": 1 }
+    ],
+    "reward": {
+      "items": [
+        { "id": "default:ice", "icon": "default_ice.png", "count": 4 }
+      ]
+    }
+  },
+
+  "collect_wood": {
+    "id": "collect_wood",
+    "title": "Collect Wood",
+    "desc": "Punch a tree.",
+    "chapter": "getting_started",
+    "pos": [3, 0],
+    "requires": [],
+    "icon": "default_tree.png",
+    "tasks": [
+      { "id": "default:wood", "name": "Wood", "icon": "default_wood.png", "count": 1 }
+    ],
+    "reward": {
+      "items": [
+        { "id": "default:stick", "icon": "default_stick.png", "count": 4 }
+      ]
+    }
+  },
+
+  "building_home": {
+    "id": "building_home",
+    "title": "Building a Home",
+    "desc": "We need shelter.",
+    "chapter": "getting_started",
+    "pos": [6, 0],
+    "requires": ["collect_wood"],
+    "icon": "default_wood.png",
+    "tasks": [
+      { "id": "default:chest", "name": "Chest", "icon": "default_chest.png", "count": 1 }
+    ],
+    "reward": {
+      "items": [
+        { "id": "default:cobble", "icon": "default_cobble.png", "count": 64 }
+      ]
+    }
+  }
+}

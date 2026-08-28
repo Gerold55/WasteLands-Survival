@@ -1,154 +1,152 @@
 local MODNAME = "ws_creative"
 
--- Per-player state
-local player_page = {}
-local player_search = {}
-local ITEMS_PER_PAGE = 9 * 6  -- 9 columns x 6 rows
+local PLAYER_STATE = {}
 
--- Detached inventory for creative items
-local creative_inv = minetest.create_detached_inventory(MODNAME .. "_creative", {
-    allow_move = function() return 0 end,
-    allow_put  = function() return 0 end,
-    allow_take = function() return 0 end,
-})
+local COLS = 9
+local ROWS = 8
+local PAGE_SIZE = COLS * ROWS
 
 ----------------------------------------------------------------------
--- COLLECT ALL CREATIVE ITEMS
+-- Build per-player creative state and detached inventory
 ----------------------------------------------------------------------
 
-local function get_all_items()
-    local list = {}
-    for name, def in pairs(minetest.registered_items) do
+local function init_player(player)
+    local name = player:get_player_name()
+
+    if PLAYER_STATE[name] then
+        return PLAYER_STATE[name]
+    end
+
+    local state = {
+        start_i = 0,
+        filter = "",
+        items = {},
+    }
+    PLAYER_STATE[name] = state
+
+    -- Create detached inventory for this player
+    local inv = minetest.create_detached_inventory("creative_" .. name, {
+        allow_move = function() return 0 end,
+        allow_put  = function() return 0 end,
+        allow_take = function(inv, listname, index, stack, player2)
+            return stack:get_count()
+        end,
+    })
+
+    -- Collect all creative items
+    local items = {}
+    for item, def in pairs(minetest.registered_items) do
         if not def.groups.not_in_creative_inventory then
-            list[#list + 1] = name
+            items[#items+1] = item
         end
     end
-    table.sort(list)
-    return list
+    table.sort(items)
+
+    state.items = items
+
+    -- Fill detached inventory ONCE with full list
+    inv:set_size("main", #items)
+    inv:set_list("main", items)
+
+    return state
 end
 
 ----------------------------------------------------------------------
--- FILTER BY SEARCH
-----------------------------------------------------------------------
-
-local function filter_items(search)
-    local all = get_all_items()
-    if not search or search == "" then
-        return all
-    end
-
-    local filtered = {}
-    search = search:lower()
-
-    for _, name in ipairs(all) do
-        if name:lower():find(search, 1, true) then
-            filtered[#filtered + 1] = name
-        end
-    end
-
-    return filtered
-end
-
-----------------------------------------------------------------------
--- REFILL PAGE
-----------------------------------------------------------------------
-
-local function refill_page(player)
-    local pname = player:get_player_name()
-    local page = player_page[pname] or 1
-    local search = player_search[pname] or ""
-
-    local items = filter_items(search)
-    local total_pages = math.max(1, math.ceil(#items / ITEMS_PER_PAGE))
-
-    if page < 1 then page = 1 end
-    if page > total_pages then page = total_pages end
-    player_page[pname] = page
-
-    creative_inv:set_size("main", ITEMS_PER_PAGE)
-
-    local start_index = (page - 1) * ITEMS_PER_PAGE + 1
-    for i = 1, ITEMS_PER_PAGE do
-        local item_name = items[start_index + i - 1]
-        if item_name then
-            creative_inv:set_stack("main", i, ItemStack(item_name))
-        else
-            creative_inv:set_stack("main", i, ItemStack(""))
-        end
-    end
-
-    return total_pages
-end
-
-----------------------------------------------------------------------
--- FORMSPEC (ADJUSTED)
+-- Build formspec
 ----------------------------------------------------------------------
 
 local function get_formspec(player)
-    local pname = player:get_player_name()
-    local page = player_page[pname] or 1
-    local search = player_search[pname] or ""
-    local total_pages = refill_page(player)
+    local name = player:get_player_name()
+    local st = init_player(player)
+
+    local total = #st.items
+    local page = math.floor(st.start_i / PAGE_SIZE) + 1
+    local max_page = math.max(1, math.ceil(total / PAGE_SIZE))
 
     return table.concat({
         "formspec_version[4]",
-        "size[11.5,11.8]",
-        "background[-0.5,-0.5;12,11.8;ws_creative_bg.png]",
+        "size[14,13]",
 
-        -- Title
-        "label[0.05,0.14;All Creative Tabs (" .. page .. "/" .. total_pages .. ")]",
-        "style_type[label;font=mono;color=#FFFFFF]",
+        "label[0.4,0.4;Page " .. page .. " / " .. max_page .. "]",
+        "button[10.5,0.2;1,0.8;prev;<]",
+        "button[11.7,0.2;1,0.8;next;>]",
 
-        -- Page arrows
-        "button[9,0.3;0.8,0.8;prev;<]",
-        "button[10,0.3;0.8,0.8;next;>]",
-
-        -- Search bar (spaced properly)
-        "field[0.12,1.0;5,0.5;search;Search...;" .. search .. "]",
-        "field_close_on_enter[search;false]",
-
-        -- Creative grid (centered, spaced)
-        "list[detached:" .. MODNAME .. "_creative;main;0.08,2.2;9,9;]",
-        "listring[detached:" .. MODNAME .. "_creative;main]",
+        -- Creative grid: window into detached inventory using start_i
+        "list[detached:creative_" .. name .. ";main;0.4,1.4;9,8;" .. st.start_i .. "]",
+        "listring[detached:creative_" .. name .. ";main]",
         "listring[current_player;main]",
 
-        -- Hotbar (aligned)
-        "list[current_player;main;0.08,10;9,1;]",
+        -- Search field
+        "field[0.4,10.4;7.5,0.8;search;Search...;" .. st.filter .. "]",
+        "field_close_on_enter[search;false]",
+
+        -- Hotbar
+        "list[current_player;main;0.4,11.4;9,1;]",
     })
 end
 
 ----------------------------------------------------------------------
--- PLAYER JOIN
+-- Override inventory on join
 ----------------------------------------------------------------------
 
 minetest.register_on_joinplayer(function(player)
-    local pname = player:get_player_name()
-    player_page[pname] = 1
-    player_search[pname] = ""
-
+    init_player(player)
     player:hud_set_hotbar_itemcount(9)
     player:set_inventory_formspec(get_formspec(player))
 end)
 
 ----------------------------------------------------------------------
--- HANDLE BUTTONS + SEARCH
+-- Handle formspec input
 ----------------------------------------------------------------------
 
 minetest.register_on_player_receive_fields(function(player, formname, fields)
-    local pname = player:get_player_name()
+    local name = player:get_player_name()
+    local st = init_player(player)
 
-    -- Page buttons
+    -- Close → immediately restore creative inventory
+    if fields.quit then
+        minetest.after(0, function()
+            player:set_inventory_formspec(get_formspec(player))
+        end)
+        return
+    end
+
+    local total = #st.items
+
+    -- Paging with arrows
     if fields.prev then
-        player_page[pname] = (player_page[pname] or 1) - 1
+        st.start_i = st.start_i - PAGE_SIZE
+        if st.start_i < 0 then
+            st.start_i = math.max(0, total - PAGE_SIZE)
+        end
     elseif fields.next then
-        player_page[pname] = (player_page[pname] or 1) + 1
+        st.start_i = st.start_i + PAGE_SIZE
+        if st.start_i >= total then
+            st.start_i = 0
+        end
     end
 
-    -- Search bar
+    -- Search
     if fields.search then
-        player_search[pname] = fields.search
-        player_page[pname] = 1  -- reset to first page when searching
+        st.filter = fields.search
+        st.start_i = 0
+
+        -- Rebuild filtered list
+        local filtered = {}
+        for _, item in ipairs(st.items) do
+            if item:lower():find(st.filter:lower(), 1, true) then
+                filtered[#filtered+1] = item
+            end
+        end
+
+        local inv = minetest.get_inventory({type = "detached", name = "creative_" .. name})
+        inv:set_size("main", #filtered)
+        inv:set_list("main", filtered)
+
+        st.items = filtered
+        total = #st.items
     end
 
+    -- Redraw formspec after any change
     player:set_inventory_formspec(get_formspec(player))
 end)

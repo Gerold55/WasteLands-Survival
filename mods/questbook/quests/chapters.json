@@ -1,0 +1,11 @@
+{
+    "getting_started": {
+        "id": "getting_started",
+        "title": "Getting Started",
+        "icon": "default_book.png",
+        "desc": "Learn the basics of survival.",
+        "quests": [
+            "building_home"
+        ]
+    }
+}

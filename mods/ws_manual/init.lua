@@ -8,22 +8,67 @@ local has_lab        = minetest.get_modpath("ws_lab")
 
 ------------------------------------------------------------
 -- BUILD PAGE LIST
+-- Page 0 = Cover
+-- Page 1 = Introduction
 ------------------------------------------------------------
 local pages = {}
-for _, p in ipairs(content.core) do table.insert(pages, p) end
-if has_blacksmith then table.insert(pages, content.blacksmithing) end
-if has_lab then table.insert(pages, content.dna) end
-table.insert(pages, content.recipes)
+
+-- Page 0: Cover
+pages[0] = content.cover
+
+-- Page 1+: Core pages (Introduction first)
+local idx = 1
+for _, p in ipairs(content.core) do
+    pages[idx] = p
+    idx = idx + 1
+end
+
+-- Optional modules
+if has_blacksmith then
+    pages[idx] = content.blacksmithing
+    idx = idx + 1
+end
+
+if has_lab then
+    pages[idx] = content.dna
+    idx = idx + 1
+end
+
+-- Recipes last
+pages[idx] = content.recipes
 
 local function esc(s)
     return minetest.formspec_escape(s or "")
 end
 
 ------------------------------------------------------------
--- MINECRAFT‑STYLE BOOK FORM
+-- COVER PAGE (Page 0)
+------------------------------------------------------------
+local function build_cover_formspec()
+    return table.concat({
+        "formspec_version[6]",
+        "size[10,10]",
+        "bgcolor[#00000000]",
+
+        -- Full book cover image
+        "image[0,0;10,10;ws_manual_book_cover.png]",
+
+        -- Next button → goes to Page 1 (Introduction)
+        "image_button[7,8.5;1.5,1;ws_manual_arrow_right.png;next;]"
+    }, "")
+end
+
+------------------------------------------------------------
+-- MAIN MANUAL PAGE (Page 1+)
 ------------------------------------------------------------
 local function build_manual_formspec(player_name, page_index)
-    page_index = math.max(1, math.min(page_index or 1, #pages))
+    -- Page 0 = cover
+    if page_index == 0 then
+        return build_cover_formspec()
+    end
+
+    -- Clamp page index
+    page_index = math.max(1, math.min(page_index, #pages))
     local page = pages[page_index]
 
     local title = esc(page.title or ("Page " .. page_index))
@@ -31,24 +76,24 @@ local function build_manual_formspec(player_name, page_index)
 
     local fs = {
         "formspec_version[6]",
-        "size[14,10]",
-        "bgcolor[#000000aa]",
+        "size[25.75,12.5]",
+        "bgcolor[#00000000]",
 
-        -- Book background (Minecraft‑style parchment)
-        "image[0,0;14,10;ws_manual_book_bg.png]",
+        -- Book background
+        "background[0,0;25.75,12.5;ws_manual_book_bg.png]",
 
-        -- Title centered at top
+        -- Title
         "label[4.5,0.6;" .. title .. "]",
 
         -- Left page text
         "textarea[0.8,1.3;6.2,7.2;;;" .. body .. "]",
 
-        -- Right page illustrations
+        -- Right page area
         "box[7.2,1.2;6.2,7.2;#00000000]"
     }
 
     ------------------------------------------------------------
-    -- IMAGES (small thumbnails on right page)
+    -- IMAGES (right page thumbnails)
     ------------------------------------------------------------
     if page.images then
         local y = 1.4
@@ -61,7 +106,7 @@ local function build_manual_formspec(player_name, page_index)
     end
 
     ------------------------------------------------------------
-    -- ITEM ICONS (Minecraft‑style)
+    -- ITEM ICONS
     ------------------------------------------------------------
     if page.items then
         local y = 1.4 + ((page.images and #page.images or 0) * 2.8)
@@ -76,31 +121,13 @@ local function build_manual_formspec(player_name, page_index)
     end
 
     ------------------------------------------------------------
-    -- Navigation buttons (Minecraft‑style arrows)
+    -- Navigation buttons
     ------------------------------------------------------------
-    table.insert(fs, "image_button[4.0,8.4;1,1;ws_manual_arrow_left.png;prev;]")
-    table.insert(fs, "image_button[9.0,8.4;1,1;ws_manual_arrow_right.png;next;]")
-    table.insert(fs, string.format("label[6.5,8.5;Page %d / %d]", page_index, #pages))
-
-    -- Close button
-    table.insert(fs, "button_exit[11.2,8.3;2,1;close;Close]")
+    table.insert(fs, "image_button[4.0,10.5;1,1;ws_manual_arrow_left.png;prev;]")
+    table.insert(fs, "image_button[9.0,10.5;1,1;ws_manual_arrow_right.png;next;]")
+    table.insert(fs, string.format("label[6.5,10.6;Page %d / %d]", page_index, #pages))
 
     return table.concat(fs, "")
-end
-
-------------------------------------------------------------
--- IMAGE VIEWER (cleaner)
-------------------------------------------------------------
-local function build_image_viewer_formspec(img_or_item, is_item)
-    if is_item then
-        return "formspec_version[6]size[8,7]bgcolor[#000000aa]" ..
-               "item_image_button[2,1;4,4;" .. img_or_item .. ";_ws_manual_img_view;]" ..
-               "button_exit[3,5.5;2,1;close;Close]"
-    else
-        return "formspec_version[6]size[10,7]bgcolor[#000000aa]" ..
-               "image[1,1;8,5;" .. img_or_item .. "]" ..
-               "button_exit[4,6;2,1;close;Close]"
-    end
 end
 
 ------------------------------------------------------------
@@ -113,8 +140,8 @@ minetest.register_craftitem("ws_manual:manual", {
 
     on_use = function(itemstack, user)
         local name = user:get_player_name()
-        local page = user:get_meta():get_int("ws_manual:page") or 1
-        minetest.show_formspec(name, "ws_manual:manual_fs", build_manual_formspec(name, page))
+        user:get_meta():set_int("ws_manual:page", 0)
+        minetest.show_formspec(name, "ws_manual:manual_fs", build_cover_formspec())
         return itemstack
     end
 })
@@ -127,7 +154,15 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 
     local name = player:get_player_name()
     local meta = player:get_meta()
-    local page = meta:get_int("ws_manual:page") or 1
+    local page = meta:get_int("ws_manual:page") or 0
+
+    -- Cover → Next → Page 1 (Introduction)
+    if fields.next and page == 0 then
+        page = 1
+        meta:set_int("ws_manual:page", page)
+        minetest.show_formspec(name, "ws_manual:manual_fs", build_manual_formspec(name, page))
+        return
+    end
 
     -- Navigation
     if fields.next then
@@ -187,8 +222,8 @@ minetest.register_chatcommand("manual", {
     func = function(name)
         local player = minetest.get_player_by_name(name)
         if not player then return false, "Player not found." end
-        player:get_meta():set_int("ws_manual:page", 1)
-        minetest.show_formspec(name, "ws_manual:manual_fs", build_manual_formspec(name, 1))
+        player:get_meta():set_int("ws_manual:page", 0)
+        minetest.show_formspec(name, "ws_manual:manual_fs", build_cover_formspec())
         return true, "Manual opened."
     end
 })

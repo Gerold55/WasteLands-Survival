@@ -1,7 +1,21 @@
 -- ws_manual/manual_content.lua
 local content = {}
 
--- Core survival topics (always present) — sample page uses images and items
+-- Front cover (always first)
+content.cover = {
+    title = "Wastelands Survival Manual",
+    body = table.concat({
+        "A field guide for survivors of the post‑apocalyptic frontier.",
+        "",
+        "Compiled by the Wastelands Engineering Corps.",
+        "Includes crafting, blacksmithing, and genetic research protocols.",
+        "",
+        "Press 'Next' to begin your training."
+    }, "\n"),
+    images = { "ws_manual/textures/manual_cover_art.png" } -- new front cover texture
+}
+
+-- Core survival topics (always present)
 content.core = {
     {
         title = "Introduction",
@@ -11,20 +25,31 @@ content.core = {
             "",
             "Tip: Keep the manual in your hotbar for quick access (or use /manual to open it)."
         }, "\n"),
-        images = { "ws_manual/textures/manual_cover.png" }, -- optional
+        images = { "ws_manual/textures/manual_cover.png" },
     },
     {
-        title = "Basic Survival",
-        body = table.concat({
-            "1) Water: Boil or purify before drinking. Look for supply caches in ruined kitchens.",
-            "2) Food: Canned goods last. Cook meat to avoid infection from mutated fauna.",
-            "3) Shelter: Reinforce the vault door panels with scrap metal to reduce radiation seep.",
-            "",
-            "If you find a 'campfire' node, you can craft a simple cooking grate to prepare meals."
-        }, "\n"),
-        -- show the campfire node inventory image (uses registered item name)
-        items = { "fire:basic_flame", "default:torch" },
-    }
+    title = "Basic Survival",
+    body = table.concat({
+        "Water:",
+        "Boil or purify before drinking. Early on, craft a Filter Straw to safely drink from lakes or the ocean.",
+        "Later, build a Dew Collector to generate small amounts of clean water each morning.",
+        "",
+        "Food:",
+        "Canned goods last the longest. Cook meat to avoid infection from mutated fauna.",
+        "",
+        "Shelter:",
+        "Reinforce vault door panels with scrap metal to reduce radiation seep.",
+        "",
+        "Tip:",
+        "If you find a 'campfire' node, you can craft a simple cooking grate to prepare meals."
+    }, "\n"),
+    items = {
+        "ws_survival:filter_straw",
+        "ws_survival:dew_collector",
+        "fire:basic_flame",
+        "ws_core:torch"
+    },
+}
 }
 
 -- Blacksmithing guide (show if mod present)
@@ -43,6 +68,7 @@ content.blacksmithing = {
     images = { "ws_manual/textures/forge_example.png" }
 }
 
+-- DNA Analyzer guide
 content.dna = {
     title = "DNA Analyzer (apocdna)",
     body = table.concat({
@@ -56,7 +82,7 @@ content.dna = {
     items = { "apocdna:genome_analyzer", "apocdna:sample_vial" }
 }
 
--- Misc / mod-agnostic quick recipes
+-- Quick recipes
 content.recipes = {
     title = "Quick Crafting Recipes",
     body = table.concat({
